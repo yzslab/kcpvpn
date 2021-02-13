@@ -49,7 +49,10 @@ function set_cc_for_architecture() {
 }
 
 BUILD_DIR="kcpvpn-build"
-ARCHITECTURES="386 amd64 arm arm64 mips mipsle mips64le"
+ARCHITECTURES="${1}"
+if [ "${ARCHITECTURES}" == "" ]; then
+  ARCHITECTURES="386 amd64 arm arm64 mips mipsle mips64le"
+fi
 rm -rf ${BUILD_DIR}
 mkdir -p ${BUILD_DIR}
 pushd ${BUILD_DIR} || exit 1

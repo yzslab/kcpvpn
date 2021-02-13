@@ -12,7 +12,7 @@ License: [Apache License, Version 2.0](https://github.com/yzsme/kcpvpn/blob/mast
 ```shell script
 git clone https://github.com/yzsme/kcpvpn
 pushd kcpvpn
-bash ./build.bash
+bash ./build.bash # or bash ./build.bash "amd64"
 ls -l kcpvpn-build
 popd
 ```

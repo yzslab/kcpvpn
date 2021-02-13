@@ -129,44 +129,56 @@ ReturnError:
 	return nil, err
 }
 
-func readThenWrite(reader io.Reader, writer io.Writer, bufferSize uint) error {
+func readThenWrite(reader io.Reader, writer io.Writer, bufferSize uint, id string) error {
 	var err error
-	var nRead int
-	buffer := make([]byte, bufferSize)
-	for {
-		nRead, err = reader.Read(buffer)
-		// log.Printf("%d byte(s) read", nRead)
-		if err != nil {
-			return err
+	if wt, ok := reader.(io.WriterTo); ok {
+		log.Printf("%s: WriteTo() available", id)
+		for {
+			_, err = wt.WriteTo(writer)
+			if err != nil {
+				return err
+			}
 		}
-		_, err = writer.Write(buffer[:nRead])
-		// log.Printf("%d byte(s) write", nWrite)
-		if err != nil {
-			return err
+	} else if rf, ok := writer.(io.ReaderFrom); ok {
+		log.Printf("%s: ReadFrom() available", id)
+		for {
+			_, err = rf.ReadFrom(reader)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		log.Printf("%s: io.CopyBuffer()", id)
+		buffer := make([]byte, bufferSize)
+		for {
+			_, err = io.CopyBuffer(writer, reader, buffer)
+			if err != nil {
+				return nil
+			}
 		}
 	}
 }
 
-func readThenWriteWithLogger(reader io.Reader, writer io.Writer, bufferSize uint, logger func(message string), onError func(err error)) {
-	err := readThenWrite(reader, writer, bufferSize)
+func readThenWriteWithLogger(reader io.Reader, writer io.Writer, bufferSize uint, logger func(message string), onError func(err error), id string) {
+	err := readThenWrite(reader, writer, bufferSize, id)
 	if err != nil {
 		logger(err.Error())
 		onError(err)
 	}
 }
 
-func startReadThenWriteWithLogger(reader io.Reader, writer io.Writer, bufferSize uint, logger func(message string)) chan struct{} {
+func startReadThenWriteWithLogger(reader io.Reader, writer io.Writer, bufferSize uint, logger func(message string), id string) chan struct{} {
 	ch := make(chan struct{})
 	go readThenWriteWithLogger(reader, writer, bufferSize, logger, func(err error) {
 		close(ch)
-	})
+	}, id)
 	return ch
 }
 
 func startReadWriterExchange(a io.ReadWriter, b io.ReadWriter, bufferSize uint, logger func(message string)) chan struct{} {
 	ch := make(chan struct{})
-	a2b := startReadThenWriteWithLogger(a, b, bufferSize, logger)
-	b2a := startReadThenWriteWithLogger(b, a, bufferSize, logger)
+	a2b := startReadThenWriteWithLogger(a, b, bufferSize, logger, "a->b")
+	b2a := startReadThenWriteWithLogger(b, a, bufferSize, logger, "b->a")
 	go func() {
 		select {
 		case <-a2b:

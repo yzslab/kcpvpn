@@ -65,8 +65,10 @@ func startServer(config *ServerConfig) error {
 		session.SetMtu(int(config.GetUDPMTU()))
 		session.SetWindowSize(config.GetSendWindowSize(), config.GetReceiveWindowSize())
 		session.SetACKNoDelay(config.GetAckNodelay())
-		session.SetRapidFec(config.EnableRapidFec)
-		session.SetRapidFecMinInterval(time.Duration(config.GetInterval()) * time.Millisecond)
+		if config.Datashard != 0 && config.Parityshard != 0 {
+			session.SetRapidFec(config.EnableRapidFec)
+			session.SetRapidFecMinInterval(time.Duration(config.GetInterval()) * time.Millisecond)
+		}
 
 		client, err := NewVPNClient(session, fmt.Sprintf("%s%d", config.GetVNINamePrefix(), config.IncreaseConnectionCounter()), config)
 
